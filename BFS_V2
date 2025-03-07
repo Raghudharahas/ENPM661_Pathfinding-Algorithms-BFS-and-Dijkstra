@@ -26,30 +26,45 @@ def bfs_maze(maze, start_pos, goal_pos):
     
     queue = deque()
     visited_pos = set()
+    parent_map = {}  # Dictionary to track parent of each node
     explored_nodes = []
 
-    queue.append((start_pos, [tuple(start_pos)]))  # (position, path)
+    queue.append(start_pos)  # Start position
     visited_pos.add(tuple(start_pos))
+    parent_map[tuple(start_pos)] = None  # Root node has no parent
 
     while queue:
-        current_pos, path = queue.popleft()
+        current_pos = queue.popleft()
         explored_nodes.append(tuple(current_pos))
 
-        # Goal Check
+        # Goal Check - If found, backtrack to reconstruct the path
         if np.array_equal(current_pos, goal_pos):
-            return path, explored_nodes
+            return backtrack_path(parent_map, goal_pos), explored_nodes  # Return shortest path
 
         # Explore Neighbors
         for dx, dy in directions:
             new_pos = np.add(current_pos, (dx, dy))
 
-            # Check if the new position is within bounds
+            # Check if new position is within bounds and unvisited
             if 0 <= new_pos[0] < rows and 0 <= new_pos[1] < cols:
                 if maze[new_pos[0], new_pos[1]] == 0 and tuple(new_pos) not in visited_pos:
-                    queue.append((new_pos, path + [tuple(new_pos)]))
+                    queue.append(new_pos)
                     visited_pos.add(tuple(new_pos))
+                    parent_map[tuple(new_pos)] = tuple(current_pos)  # Store parent info
 
-    return "Failure", explored_nodes
+    return "Failure", explored_nodes  # If no path found, return failure
+
+#  Function to backtrack from goal to start using parent_map
+def backtrack_path(parent_map, goal_pos):
+    path = []
+    node = tuple(goal_pos)  # Start from goal
+
+    while node is not None:
+        path.append(node)
+        node = parent_map[node]  # Move to parent node
+
+    return path[::-1]  # Reverse to get path from start to goal
+
 
 # Define Maze (50 x 180) with Obstacles
 maze = np.ones((50,180))  # Initialize with walls (1 = Obstacle)
