@@ -1,13 +1,30 @@
 import numpy as np
 from collections import deque
 import matplotlib.pyplot as plt
+import time
+
+# Function to get valid user input for start and goal positions
+def get_valid_position(maze, prompt):
+    while True:
+        try:
+            x, y = map(int, input(prompt).split())  # Accepts user input as "x y"
+            if 0 <= x < maze.shape[0] and 0 <= y < maze.shape[1]:
+                if maze[x, y] == 0:  # Ensure it's a valid free space
+                    return np.array([x, y])
+                else:
+                    print("Position inside an obstacle! Try again.")
+            else:
+                print(" Position out of bounds! Try again.")
+        except ValueError:
+            print("Invalid input! Enter two space-separated integers.")
+
 
 def bfs_maze(maze,start_pos,goal_pos):
     rows,cols = maze.shape
     directions=[(0,1),(1,0),(0,-1),(-1,0),(1,1),(-1,-1),(1,-1),(-1,1)]
     queue = deque()
     visited_pos = set()
-    queue.append((start_pos,0),[start_pos]) # (position, distance)
+    queue.append((start_pos),[tuple(start_pos)]) # (position, distance)
     visited_pos.add(tuple(start_pos))
     while queue:
         current_pos,path = queue.popleft()
@@ -57,11 +74,15 @@ maze = inflate_obstacle(maze,clearance=2)
 
 #define start and goal positions 
 start_pos=np.array([5,5])
-goal_pos=np.array([45,175])
+goal_pos=np.array([45,175])# Get valid start and goal positions from user
+start_pos = get_valid_position(maze, "Enter START coordinates (x y): ")
+goal_pos = get_valid_position(maze, "Enter GOAL coordinates (x y): ")
 
-#Run Bfs
-path = bfs_maze(maze,start_pos,goal_pos)
-print(path)
+
+#Run BFS to find the path
+start_time = time.time()
+path = bfs_maze(maze, start_pos, goal_pos)
+end_time = time.time()
 
 # Visualize Path in the Grid
 def plot_maze(maze, path, start_pos, goal_pos):

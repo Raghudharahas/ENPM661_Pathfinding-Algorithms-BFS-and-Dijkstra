@@ -1,0 +1,132 @@
+import numpy as np
+import cv2
+import matplotlib.pyplot as plt
+import time
+from collections import deque
+
+# Function to get valid user input for start and goal positions
+def get_valid_position(maze, prompt):
+    while True:
+        try:
+            x, y = map(int, input(prompt).split())  # Accepts user input as "x y"
+            if 0 <= x < maze.shape[0] and 0 <= y < maze.shape[1]:
+                if maze[x, y] == 0:  # Ensure it's a valid free space
+                    return np.array([x, y])
+                else:
+                    print("❌ Position inside an obstacle! Try again.")
+            else:
+                print("❌ Position out of bounds! Try again.")
+        except ValueError:
+            print("❌ Invalid input! Enter two space-separated integers.")
+
+# BFS Algorithm with node tracking
+def bfs_maze(maze, start_pos, goal_pos):
+    rows, cols = maze.shape
+    directions = [(0,1), (1,0), (0,-1), (-1,0), (1,1), (-1,-1), (1,-1), (-1,1)]
+    
+    queue = deque()
+    visited_pos = set()
+    explored_nodes = []
+
+    queue.append((start_pos, [tuple(start_pos)]))  # (position, path)
+    visited_pos.add(tuple(start_pos))
+
+    while queue:
+        current_pos, path = queue.popleft()
+        explored_nodes.append(tuple(current_pos))
+
+        # Goal Check
+        if np.array_equal(current_pos, goal_pos):
+            return path, explored_nodes
+
+        # Explore Neighbors
+        for dx, dy in directions:
+            new_pos = np.add(current_pos, (dx, dy))
+
+            # Check if the new position is within bounds
+            if 0 <= new_pos[0] < rows and 0 <= new_pos[1] < cols:
+                if maze[new_pos[0], new_pos[1]] == 0 and tuple(new_pos) not in visited_pos:
+                    queue.append((new_pos, path + [tuple(new_pos)]))
+                    visited_pos.add(tuple(new_pos))
+
+    return "Failure", explored_nodes
+
+# Define Maze (50 x 180) with Obstacles
+maze = np.ones((50,180))  # Initialize with walls (1 = Obstacle)
+maze[5:45,5:175] = 0  # Creating an open rectangular space
+
+# Define Obstacles (Letters ENPM661)
+maze[10:40,30:40] = 1  # 'E'
+maze[10:40,45:55] = 1  # 'N'
+maze[10:40,60:70] = 1  # 'P'
+maze[10:40,75:85] = 1  # 'M'
+maze[10:40,90:100] = 1  # '6'
+maze[10:40,105:115] = 1  # '6'
+maze[10:40,120:130] = 1  # '1'
+
+# Inflate obstacles with 2mm clearance
+def inflate_obstacle(maze, clearance=2):
+    inflated_maze = np.copy(maze)
+    rows, cols = maze.shape
+    for i in range(rows):
+        for j in range(cols):
+            if maze[i, j] == 1:
+                for dx in range(-clearance, clearance + 1):
+                    for dy in range(-clearance, clearance + 1):
+                        ni, nj = i + dx, j + dy
+                        if 0 <= ni < rows and 0 <= nj < cols:
+                            inflated_maze[ni, nj] = 1  # Mark inflated obstacles
+    return inflated_maze
+
+maze = inflate_obstacle(maze, clearance=2)
+
+# Get valid start and goal positions from user
+start_pos = get_valid_position(maze, "Enter START coordinates (x y): ")
+goal_pos = get_valid_position(maze, "Enter GOAL coordinates (x y): ")
+
+# Run BFS and measure runtime
+start_time = time.time()
+path, explored_nodes = bfs_maze(maze, start_pos, goal_pos)
+end_time = time.time()
+
+# Save BFS Animation as a Video
+video_filename = "bfs_exploration.mp4"
+frame_size = (maze.shape[1] * 10, maze.shape[0] * 10)  # Scale up for better visibility
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+out = cv2.VideoWriter(video_filename, fourcc, 10, frame_size)
+
+# Create a blank image to draw on
+canvas = np.ones((maze.shape[0] * 10, maze.shape[1] * 10, 3), dtype=np.uint8) * 255
+
+# Draw obstacles
+for i in range(maze.shape[0]):
+    for j in range(maze.shape[1]):
+        if maze[i, j] == 1:
+            cv2.rectangle(canvas, (j * 10, i * 10), (j * 10 + 10, i * 10 + 10), (0, 0, 0), -1)
+
+# Draw BFS exploration process
+for x, y in explored_nodes:
+    cv2.rectangle(canvas, (y * 10, x * 10), (y * 10 + 10, x * 10 + 10), (255, 0, 0), -1)
+    out.write(canvas)
+
+# Draw final path if found
+if path != "Failure":
+    for x, y in path:
+        cv2.rectangle(canvas, (y * 10, x * 10), (y * 10 + 10, x * 10 + 10), (0, 0, 255), -1)
+        out.write(canvas)
+
+# Draw start and goal positions
+cv2.rectangle(canvas, (start_pos[1] * 10, start_pos[0] * 10), (start_pos[1] * 10 + 10, start_pos[0] * 10 + 10), (0, 255, 0), -1)
+cv2.rectangle(canvas, (goal_pos[1] * 10, goal_pos[0] * 10), (goal_pos[1] * 10 + 10, goal_pos[0] * 10 + 10), (255, 0, 255), -1)
+out.write(canvas)
+
+# Release video writer
+out.release()
+
+# Print Results
+print(f"✅ BFS Animation Saved as: {video_filename}")
+print(f"⏳ BFS Execution Time: {end_time - start_time:.4f} seconds")
+if path == "Failure":
+    print("❌ No path found")
+else:
+    print("✅ Path found:", path)
