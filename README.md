@@ -15,8 +15,8 @@ If dependencies are not installed then install them using : pip install numpy op
 
 ## How to Run the Code
 1. **Run the script** in your Visual studio code:
-    a:Download files and open in vs code and run
-    b:Clone the repository to local system and run
+    - 'a':Download files and open in vs code and run
+    - 'b':Clone the repository to local system and run
  
 2. **Enter start and goal coordinates** when prompted:
    - Input format: `row col` (e.g., `24 8`)
@@ -45,6 +45,4 @@ If dependencies are not installed then install them using : pip install numpy op
 - Press any key to proceed at different visualization stages.
 - Press `ESC` to exit early during animations.
 
-Regads,
-Raghu dharahas
 
